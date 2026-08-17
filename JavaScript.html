@@ -1,0 +1,253 @@
+<script>
+  let catalogItems = [];
+  let allTags = [];
+  const selectedTags = new Set();
+
+  window.addEventListener('DOMContentLoaded', initialize);
+
+  function initialize() {
+    setupEvents();
+    loadCatalog();
+  }
+
+  function setupEvents() {
+    document
+      .getElementById('searchInput')
+      .addEventListener('input', renderCatalog);
+
+    document
+      .getElementById('clearSearchButton')
+      .addEventListener('click', () => {
+        document.getElementById('searchInput').value = '';
+        renderCatalog();
+      });
+
+    document
+      .getElementById('clearFiltersButton')
+      .addEventListener('click', clearFilters);
+  }
+
+  function loadCatalog() {
+    google.script.run
+      .withSuccessHandler(onCatalogLoaded)
+      .withFailureHandler(onCatalogError)
+      .getCatalogData();
+  }
+
+  function onCatalogLoaded(data) {
+    catalogItems = data.items || [];
+    allTags = data.tags || [];
+
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('catalogGrid').classList.remove('hidden');
+
+    renderTagButtons();
+    renderCatalog();
+  }
+
+  function onCatalogError(error) {
+    document.getElementById('loading').classList.add('hidden');
+
+    const area = document.getElementById('errorArea');
+    area.textContent =
+      'カタログを読み込めませんでした。\n' +
+      (error.message || String(error));
+    area.classList.remove('hidden');
+  }
+
+  function renderTagButtons() {
+    const area = document.getElementById('tagArea');
+    area.innerHTML = '';
+
+    allTags.forEach(tag => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'tag-button';
+      button.textContent = '#' + tag;
+      button.addEventListener('click', () => toggleTag(tag, button));
+      area.appendChild(button);
+    });
+  }
+
+  function toggleTag(tag, button) {
+    if (selectedTags.has(tag)) {
+      selectedTags.delete(tag);
+      button.classList.remove('active');
+    } else {
+      selectedTags.add(tag);
+      button.classList.add('active');
+    }
+    renderCatalog();
+  }
+
+  function selectTag(tag) {
+    selectedTags.add(tag);
+
+    document.querySelectorAll('.tag-button').forEach(button => {
+      const buttonTag = button.textContent.replace(/^#/, '');
+      button.classList.toggle('active', selectedTags.has(buttonTag));
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    renderCatalog();
+  }
+
+  function renderCatalog() {
+    const query = normalizeText(document.getElementById('searchInput').value);
+
+    const filtered = catalogItems.filter(item => {
+      if (query && !normalizeText(item.searchText).includes(query)) {
+        return false;
+      }
+
+      if (selectedTags.size > 0) {
+        const itemTags = new Set(item.tags);
+        for (const tag of selectedTags) {
+          if (!itemTags.has(tag)) return false;
+        }
+      }
+
+      return true;
+    });
+
+    drawCards(filtered);
+    updateResultHeader(filtered.length);
+  }
+
+  function normalizeText(value) {
+    return String(value || '').normalize('NFKC').toLowerCase().trim();
+  }
+
+  function drawCards(items) {
+    const grid = document.getElementById('catalogGrid');
+    const empty = document.getElementById('emptyState');
+    grid.innerHTML = '';
+
+    if (items.length === 0) {
+      grid.classList.add('hidden');
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    empty.classList.add('hidden');
+    grid.classList.remove('hidden');
+
+    items.forEach(item => grid.appendChild(createCard(item)));
+  }
+
+  function createCard(item) {
+    const card = document.createElement('article');
+    card.className = 'catalog-card';
+
+    const title = document.createElement('h2');
+    title.className = 'card-title';
+    title.textContent = item.title;
+    card.appendChild(title);
+
+    const description = document.createElement('p');
+    description.className = 'card-description';
+    description.textContent = item.description;
+    card.appendChild(description);
+
+    if (item.tags.length > 0) {
+      const tagArea = document.createElement('div');
+      tagArea.className = 'card-tags';
+
+      item.tags.forEach(tag => {
+        const tagButton = document.createElement('button');
+        tagButton.type = 'button';
+        tagButton.className = 'card-tag';
+        tagButton.textContent = '#' + tag;
+        tagButton.addEventListener('click', () => selectTag(tag));
+        tagArea.appendChild(tagButton);
+      });
+
+      card.appendChild(tagArea);
+    }
+
+    const usageArea = document.createElement('div');
+    usageArea.className = 'usage-area';
+
+    const usageButton = document.createElement('button');
+    usageButton.type = 'button';
+    usageButton.className = 'usage-button';
+    usageButton.classList.toggle('active', item.isUsing);
+    updateUsageButton_(usageButton, item);
+    usageButton.addEventListener('click', () => toggleUsage_(item, usageButton));
+
+    usageArea.appendChild(usageButton);
+    card.appendChild(usageArea);
+
+    const footer = document.createElement('div');
+    footer.className = 'card-footer';
+
+    const date = document.createElement('span');
+    date.className = 'card-date';
+    date.textContent = item.firstPostAt;
+    footer.appendChild(date);
+
+    if (item.chatUrl) {
+      const link = document.createElement('a');
+      link.className = 'chat-link';
+      link.href = item.chatUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = 'Chatを開く ↗';
+      footer.appendChild(link);
+    }
+
+    card.appendChild(footer);
+    return card;
+  }
+
+  function toggleUsage_(item, button) {
+    if (button.disabled) return;
+
+    button.disabled = true;
+    const originalText = button.textContent;
+    button.textContent = '更新中...';
+
+    google.script.run
+      .withSuccessHandler(result => {
+        item.isUsing = result.isUsing;
+        item.usageCount = result.usageCount;
+        button.classList.toggle('active', item.isUsing);
+        updateUsageButton_(button, item);
+        button.disabled = false;
+      })
+      .withFailureHandler(error => {
+        button.textContent = originalText;
+        button.disabled = false;
+        alert(error.message || '更新できませんでした。');
+      })
+      .toggleUsage(item.threadId);
+  }
+
+  function updateUsageButton_(button, item) {
+    const count = item.usageCount || 0;
+    button.textContent = item.isUsing
+      ? `✓ 使ってます · ${count}人`
+      : `🙋 使ってます · ${count}人`;
+  }
+
+  function updateResultHeader(count) {
+    document.getElementById('resultCount').textContent = `${count}件の活用アイデア`;
+
+    const hasFilter =
+      selectedTags.size > 0 ||
+      document.getElementById('searchInput').value.trim() !== '';
+
+    document
+      .getElementById('clearFiltersButton')
+      .classList.toggle('hidden', !hasFilter);
+  }
+
+  function clearFilters() {
+    selectedTags.clear();
+    document.getElementById('searchInput').value = '';
+    document.querySelectorAll('.tag-button').forEach(button => {
+      button.classList.remove('active');
+    });
+    renderCatalog();
+  }
+</script>
