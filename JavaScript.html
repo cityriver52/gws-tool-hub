@@ -165,19 +165,6 @@
       card.appendChild(tagArea);
     }
 
-    const usageArea = document.createElement('div');
-    usageArea.className = 'usage-area';
-
-    const usageButton = document.createElement('button');
-    usageButton.type = 'button';
-    usageButton.className = 'usage-button';
-    usageButton.classList.toggle('active', item.isUsing);
-    updateUsageButton_(usageButton, item);
-    usageButton.addEventListener('click', () => toggleUsage_(item, usageButton));
-
-    usageArea.appendChild(usageButton);
-    card.appendChild(usageArea);
-
     const footer = document.createElement('div');
     footer.className = 'card-footer';
 
@@ -198,36 +185,6 @@
 
     card.appendChild(footer);
     return card;
-  }
-
-  function toggleUsage_(item, button) {
-    if (button.disabled) return;
-
-    button.disabled = true;
-    const originalText = button.textContent;
-    button.textContent = '更新中...';
-
-    google.script.run
-      .withSuccessHandler(result => {
-        item.isUsing = result.isUsing;
-        item.usageCount = result.usageCount;
-        button.classList.toggle('active', item.isUsing);
-        updateUsageButton_(button, item);
-        button.disabled = false;
-      })
-      .withFailureHandler(error => {
-        button.textContent = originalText;
-        button.disabled = false;
-        alert(error.message || '更新できませんでした。');
-      })
-      .toggleUsage(item.threadId);
-  }
-
-  function updateUsageButton_(button, item) {
-    const count = item.usageCount || 0;
-    button.textContent = item.isUsing
-      ? `✓ 使ってます · ${count}人`
-      : `🙋 使ってます · ${count}人`;
   }
 
   function updateResultHeader(count) {
