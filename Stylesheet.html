@@ -152,8 +152,10 @@
   .catalog-card {
     display: flex;
     flex-direction: column;
-    min-height: 280px;
+    min-width: 0;
+    min-height: 260px;
     padding: 22px;
+    overflow: hidden;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -172,6 +174,8 @@
     font-size: 18px;
     line-height: 1.4;
     font-weight: 700;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .card-description {
@@ -179,6 +183,9 @@
     color: #3c4043;
     font-size: 14px;
     line-height: 1.75;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .card-tags {
@@ -186,9 +193,11 @@
     flex-wrap: wrap;
     gap: 6px;
     margin-top: auto;
+    min-width: 0;
   }
 
   .card-tag {
+    max-width: 100%;
     padding: 4px 8px;
     border: none;
     border-radius: 6px;
@@ -196,40 +205,14 @@
     color: var(--text-subtle);
     font-size: 11px;
     cursor: pointer;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .card-tag:hover {
     background: var(--accent-light);
     color: var(--accent);
   }
-
-  .usage-area { margin-top: 18px; }
-
-  .usage-button {
-    padding: 8px 13px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    color: var(--text-subtle);
-    font-size: 13px;
-    cursor: pointer;
-    transition: 0.15s ease;
-  }
-
-  .usage-button:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: var(--accent-light);
-  }
-
-  .usage-button.active {
-    border-color: var(--accent);
-    background: var(--accent-light);
-    color: var(--accent);
-    font-weight: 600;
-  }
-
-  .usage-button:disabled { opacity: 0.6; cursor: wait; }
 
   .card-footer {
     display: flex;
@@ -239,6 +222,7 @@
     margin-top: 18px;
     padding-top: 14px;
     border-top: 1px solid #eceff1;
+    min-width: 0;
   }
 
   .card-date { color: var(--text-subtle); font-size: 11px; }
@@ -290,6 +274,7 @@
     border-radius: 8px;
     color: #b3261e;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 
   .hidden { display: none !important; }
