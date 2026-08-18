@@ -40,17 +40,20 @@
           <h2 class="discovery-title">今日の発見</h2>
           <p class="discovery-lead">新着・掘り起こし・ランダムから、毎日3件だけピックアップします。</p>
         </div>
-        <button id="surpriseButton" class="surprise-button" type="button">
-          <span aria-hidden="true">↻</span>
-          もう1件見つける
-        </button>
       </div>
 
       <div id="dailyDiscoveryGrid" class="discovery-grid"></div>
 
+      <div class="random-discovery-action">
+        <button id="surpriseButton" class="surprise-button" type="button">
+          <span aria-hidden="true">↻</span>
+          さらにランダムで表示する
+        </button>
+      </div>
+
       <div id="surpriseArea" class="surprise-area hidden">
-        <div class="surprise-caption">こんなのもどうですか？</div>
-        <div id="surpriseCard"></div>
+        <div class="surprise-caption">さらに3件、ランダムで選びました</div>
+        <div id="surpriseGrid" class="discovery-grid"></div>
       </div>
     </section>
 
