@@ -1,7 +1,7 @@
 <script>
   let catalogItems = [];
   let allTags = [];
-  let lastSurpriseThreadId = '';
+  let lastRandomDiscoveryThreadIds = new Set();
   let dailyDiscoveryThreadIds = new Set();
   const selectedTags = new Set();
 
@@ -177,36 +177,54 @@
   function showRandomDiscovery() {
     if (catalogItems.length === 0) return;
 
-    // まずは「今日の3件」と直前のおまかせ結果を除外する。
+    // まずは「今日の3件」と直前に表示したランダム3件を除外する。
     let candidates = catalogItems.filter(item =>
       !dailyDiscoveryThreadIds.has(item.threadId) &&
-      item.threadId !== lastSurpriseThreadId
+      !lastRandomDiscoveryThreadIds.has(item.threadId)
     );
 
-    // 件数が少ない場合は今日の3件も候補へ戻すが、直前の結果はできるだけ避ける。
-    if (candidates.length === 0) {
-      candidates = catalogItems.filter(item => item.threadId !== lastSurpriseThreadId);
-    }
-    if (candidates.length === 0) {
-      candidates = catalogItems;
+    // 3件に足りない場合は、直前の3件を候補へ戻す。
+    if (candidates.length < 3) {
+      candidates = catalogItems.filter(item =>
+        !dailyDiscoveryThreadIds.has(item.threadId)
+      );
     }
 
-    const item = candidates[Math.floor(Math.random() * candidates.length)];
-    lastSurpriseThreadId = item.threadId;
+    // それでも足りない場合は全件から選ぶ。
+    if (candidates.length < 3) {
+      candidates = catalogItems.slice();
+    }
 
-    const cardArea = document.getElementById('surpriseCard');
-    cardArea.innerHTML = '';
-    cardArea.appendChild(
-      createCard(item, {
-        discovery: true,
-        badge: 'おまかせ発見',
-        modifier: 'pick-surprise'
-      })
-    );
+    const picks = sampleRandomItems_(candidates, Math.min(3, candidates.length));
+    lastRandomDiscoveryThreadIds = new Set(picks.map(item => item.threadId));
+
+    const grid = document.getElementById('surpriseGrid');
+    grid.innerHTML = '';
+
+    picks.forEach(item => {
+      grid.appendChild(
+        createCard(item, {
+          discovery: true,
+          badge: 'ランダム',
+          modifier: 'pick-surprise'
+        })
+      );
+    });
 
     const area = document.getElementById('surpriseArea');
     area.classList.remove('hidden');
     area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function sampleRandomItems_(items, count) {
+    const pool = items.slice();
+
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+
+    return pool.slice(0, count);
   }
 
   function renderTagButtons() {
