@@ -1,6 +1,7 @@
 <script>
   let catalogItems = [];
   let allTags = [];
+  let lastSurpriseThreadId = '';
   const selectedTags = new Set();
 
   window.addEventListener('DOMContentLoaded', initialize);
@@ -25,6 +26,10 @@
     document
       .getElementById('clearFiltersButton')
       .addEventListener('click', clearFilters);
+
+    document
+      .getElementById('surpriseButton')
+      .addEventListener('click', showRandomDiscovery);
   }
 
   function loadCatalog() {
@@ -46,6 +51,7 @@
       ? `表示更新 ${data.generatedAt}`
       : '';
 
+    renderDailyDiscovery();
     renderTagButtons();
     renderCatalog();
   }
@@ -58,6 +64,135 @@
       'カタログを読み込めませんでした。\n' +
       (error.message || String(error));
     area.classList.remove('hidden');
+  }
+
+  function renderDailyDiscovery() {
+    const section = document.getElementById('dailyDiscovery');
+    const grid = document.getElementById('dailyDiscoveryGrid');
+    grid.innerHTML = '';
+
+    if (catalogItems.length === 0) {
+      section.classList.add('hidden');
+      return;
+    }
+
+    const picks = getDailyPicks_(catalogItems);
+    picks.forEach(pick => {
+      grid.appendChild(
+        createCard(pick.item, {
+          discovery: true,
+          badge: pick.badge,
+          modifier: pick.modifier
+        })
+      );
+    });
+
+    section.classList.remove('hidden');
+  }
+
+  function getDailyPicks_(items) {
+    if (items.length === 0) return [];
+
+    const dateKey = getJapanDateKey_();
+    const selectedIds = new Set();
+    const picks = [];
+
+    // 1件目: 最終更新が最も新しいもの。
+    const newest = items[0];
+    if (newest) {
+      selectedIds.add(newest.threadId);
+      picks.push({
+        item: newest,
+        badge: '新着から1件',
+        modifier: 'pick-new'
+      });
+    }
+
+    // 2件目: 古い半分から日替わりで1件。埋もれた投稿を再浮上させる。
+    const remainingForOld = items.filter(item => !selectedIds.has(item.threadId));
+    const oldPoolSize = Math.max(1, Math.ceil(remainingForOld.length / 2));
+    const oldPool = remainingForOld
+      .slice()
+      .sort((a, b) => a.firstPostTimestamp - b.firstPostTimestamp)
+      .slice(0, oldPoolSize);
+
+    if (oldPool.length > 0) {
+      const oldIndex = seededIndex_(dateKey + ':rediscover', oldPool.length);
+      const oldPick = oldPool[oldIndex];
+      selectedIds.add(oldPick.threadId);
+      picks.push({
+        item: oldPick,
+        badge: '掘り起こし',
+        modifier: 'pick-rediscover'
+      });
+    }
+
+    // 3件目: 残りから日付をseedにしたランダム1件。同じ日は全員同じ結果になる。
+    const randomPool = items.filter(item => !selectedIds.has(item.threadId));
+    if (randomPool.length > 0) {
+      const randomIndex = seededIndex_(dateKey + ':random', randomPool.length);
+      const randomPick = randomPool[randomIndex];
+      picks.push({
+        item: randomPick,
+        badge: '今日のランダム',
+        modifier: 'pick-random'
+      });
+    }
+
+    return picks;
+  }
+
+  function getJapanDateKey_() {
+    const parts = new Intl.DateTimeFormat('en', {
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(new Date());
+
+    const values = {};
+    parts.forEach(part => {
+      if (part.type !== 'literal') values[part.type] = part.value;
+    });
+
+    return `${values.year}-${values.month}-${values.day}`;
+  }
+
+  function seededIndex_(seed, length) {
+    if (length <= 1) return 0;
+
+    let hash = 2166136261;
+    for (let i = 0; i < seed.length; i++) {
+      hash ^= seed.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+
+    return (hash >>> 0) % length;
+  }
+
+  function showRandomDiscovery() {
+    if (catalogItems.length === 0) return;
+
+    const candidates = catalogItems.length > 1
+      ? catalogItems.filter(item => item.threadId !== lastSurpriseThreadId)
+      : catalogItems;
+
+    const item = candidates[Math.floor(Math.random() * candidates.length)];
+    lastSurpriseThreadId = item.threadId;
+
+    const cardArea = document.getElementById('surpriseCard');
+    cardArea.innerHTML = '';
+    cardArea.appendChild(
+      createCard(item, {
+        discovery: true,
+        badge: 'おまかせ発見',
+        modifier: 'pick-surprise'
+      })
+    );
+
+    const area = document.getElementById('surpriseArea');
+    area.classList.remove('hidden');
+    area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   function renderTagButtons() {
@@ -143,9 +278,23 @@
     items.forEach(item => grid.appendChild(createCard(item)));
   }
 
-  function createCard(item) {
+  function createCard(item, options = {}) {
     const card = document.createElement('article');
     card.className = 'catalog-card';
+
+    if (options.discovery) {
+      card.classList.add('discovery-card');
+    }
+    if (options.modifier) {
+      card.classList.add(options.modifier);
+    }
+
+    if (options.badge) {
+      const badge = document.createElement('div');
+      badge.className = 'discovery-badge';
+      badge.textContent = options.badge;
+      card.appendChild(badge);
+    }
 
     const title = document.createElement('h2');
     title.className = 'card-title';
