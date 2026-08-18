@@ -40,6 +40,12 @@
           <h2 class="discovery-title">今日の発見</h2>
           <p class="discovery-lead">新着・掘り起こし・ランダムから、毎日3件だけピックアップします。</p>
         </div>
+        <? if (subscriptionUrl) { ?>
+          <a class="daily-subscription-button" href="<?= subscriptionUrl ?>" target="_blank" rel="noopener noreferrer">
+            <span aria-hidden="true">✉</span>
+            毎日受け取る
+          </a>
+        <? } ?>
       </div>
 
       <div id="dailyDiscoveryGrid" class="discovery-grid"></div>
