@@ -8,8 +8,15 @@ function rebuildCatalog() {
 }
 
 /**
- * ChatMessagesをスレッド単位にまとめ、Catalogを再構築する。
- * AI生成済みのタイトル・紹介文・タグ等はスレッドID単位で保持する。
+ * ChatMessagesをスレッド単位にまとめ、Catalogを更新する。
+ *
+ * Catalogシートは毎回並べ替えたり全件書き直したりせず、
+ * - 既存スレッド: 既存行をその場で更新
+ * - 新規スレッド: シート末尾へappendRow()で追記
+ * とする。
+ *
+ * Webアプリ上の表示順はCatalogService.gs側で最終更新日時の降順にするため、
+ * シート上の行順には依存しない。
  */
 function rebuildCatalog_(ss) {
   const chatSheet = ss.getSheetByName(CONFIG.CHAT_SHEET);
@@ -27,10 +34,17 @@ function rebuildCatalog_(ss) {
         .getValues()
     : [];
 
+  // 既存Catalogは行番号も保持する。新規行を途中へ挿入しないため、
+  // Workspace Studioから見ても「末尾に新しい行が増える」形になる。
   const existingCatalog = new Map();
-  existingCatalogRows.forEach(row => {
+  existingCatalogRows.forEach((row, index) => {
     const threadId = String(row[0] || '');
-    if (threadId) existingCatalog.set(threadId, row);
+    if (!threadId) return;
+
+    existingCatalog.set(threadId, {
+      rowNumber: index + 2,
+      values: row
+    });
   });
 
   const threads = new Map();
@@ -50,9 +64,12 @@ function rebuildCatalog_(ss) {
     });
   });
 
-  const catalogRows = [];
+  const newRows = [];
+  const activeThreadIds = new Set();
 
   threads.forEach((messages, threadId) => {
+    activeThreadIds.add(threadId);
+
     messages.sort(
       (a, b) => getTime_(a.createTime) - getTime_(b.createTime)
     );
@@ -68,63 +85,74 @@ function rebuildCatalog_(ss) {
     );
     const threadText = buildThreadText_(messages);
 
-    const old = existingCatalog.get(threadId);
+    const existing = existingCatalog.get(threadId);
 
-    let title = '';
-    let description = '';
-    let tags = '';
-    let publishDecision = '';
-    let aiStatus = '未処理';
-    let aiProcessedAt = '';
-
-    if (old) {
-      title = old[5];
-      description = old[6];
-      tags = old[7];
-      publishDecision = old[8];
-      aiStatus = old[9] || '未処理';
-      aiProcessedAt = old[10];
-
-      const sourceChanged =
-        String(old[1] || '') !== String(root.messageId || '') ||
-        getTime_(old[2]) !== getTime_(firstPostTime) ||
-        getTime_(old[3]) !== getTime_(lastUpdateTime) ||
-        String(old[4] || '') !== String(threadText || '');
-
-      if (sourceChanged) {
-        aiStatus = aiProcessedAt ? '要再処理' : '未処理';
-      }
+    if (!existing) {
+      // 新しいスレッドは必ず末尾へ追記する。
+      newRows.push([
+        threadId,
+        root.messageId,
+        firstPostTime,
+        lastUpdateTime,
+        threadText,
+        '', // タイトル
+        '', // 紹介文
+        '', // タグ
+        '', // 掲載判定
+        '未処理',
+        '' // AI処理日時
+      ]);
+      return;
     }
 
-    catalogRows.push([
-      threadId,
-      root.messageId,
-      firstPostTime,
-      lastUpdateTime,
-      threadText,
-      title,
-      description,
-      tags,
-      publishDecision,
-      aiStatus,
-      aiProcessedAt
-    ]);
+    const old = existing.values;
+    const sourceChanged =
+      String(old[1] || '') !== String(root.messageId || '') ||
+      getTime_(old[2]) !== getTime_(firstPostTime) ||
+      getTime_(old[3]) !== getTime_(lastUpdateTime) ||
+      String(old[4] || '') !== String(threadText || '');
+
+    if (sourceChanged) {
+      // AI生成列は触らず、元データ部分だけを既存行で更新する。
+      catalogSheet
+        .getRange(existing.rowNumber, 1, 1, 5)
+        .setValues([[
+          threadId,
+          root.messageId,
+          firstPostTime,
+          lastUpdateTime,
+          threadText
+        ]]);
+
+      const aiProcessedAt = old[10];
+      catalogSheet
+        .getRange(existing.rowNumber, 10)
+        .setValue(aiProcessedAt ? '要再処理' : '未処理');
+    } else if (!String(old[9] || '').trim()) {
+      // 既存データで状態だけ空欄の場合は未処理に補正する。
+      catalogSheet
+        .getRange(existing.rowNumber, 10)
+        .setValue('未処理');
+    }
   });
 
-  // 新しいスレッドを上に。
-  catalogRows.sort((a, b) => getTime_(b[2]) - getTime_(a[2]));
+  // 同期対象から消えたスレッドはCatalogからも削除する。
+  // 行番号がずれないよう下から削除する。
+  const obsoleteRows = [];
+  existingCatalog.forEach((entry, threadId) => {
+    if (!activeThreadIds.has(threadId)) {
+      obsoleteRows.push(entry.rowNumber);
+    }
+  });
 
-  if (catalogSheet.getLastRow() >= 2) {
-    catalogSheet
-      .getRange(2, 1, catalogSheet.getLastRow() - 1, CATALOG_HEADERS.length)
-      .clearContent();
-  }
+  obsoleteRows
+    .sort((a, b) => b - a)
+    .forEach(rowNumber => catalogSheet.deleteRow(rowNumber));
 
-  if (catalogRows.length > 0) {
-    catalogSheet
-      .getRange(2, 1, catalogRows.length, CATALOG_HEADERS.length)
-      .setValues(catalogRows);
-  }
+  // 同期1回で複数の新規スレッドが見つかった場合は、
+  // 古いもの→新しいものの順に末尾へ積む。
+  newRows.sort((a, b) => getTime_(a[2]) - getTime_(b[2]));
+  newRows.forEach(row => catalogSheet.appendRow(row));
 
   formatCatalogSheet_(catalogSheet);
 }
