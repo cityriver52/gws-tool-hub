@@ -24,17 +24,22 @@ Google Chatのスペースに投稿されたGoogle Workspaceの活用アイデ�
 | スレッドID | 親投稿ID | 初回投稿日 | 最終更新日時 | スレッド本文 | タイトル | 紹介文 | タグ | 掲載判定 | AI処理状態 | AI処理日時 |
 |---|---|---|---|---|---|---|---|---|---|---|
 
+Catalogは新しいスレッドをシート末尾へ追記します。既存スレッドに返信や編集があった場合は、そのスレッドの既存行を更新します。シート上の行順はWebアプリの表示順には使用せず、Web側で `最終更新日時` の新しい順に並べ替えます。
+
 ## ファイル構成
 
 - `Config.gs`: 設定・シート定義
 - `Common.gs`: 共通関数
 - `ChatSync.gs`: Google Chat取得・差分同期
-- `CatalogBuilder.gs`: スレッド単位のCatalog生成
+- `CatalogBuilder.gs`: スレッド単位のCatalog生成・末尾追記
 - `WebApp.gs`: Webアプリ入口
 - `CatalogService.gs`: Web表示用データ取得
 - `ChatLink.gs`: Google Chatの親投稿へのリンク生成
 - `Index.html`: 画面構造
 - `Stylesheet.html`: CSS
+- `DiscoveryStyles.html`: 「今日の発見」用CSS
+- `SearchPanelStyles.html`: 検索エリア用CSS
+- `CardDetails.html`: カード本文の折りたたみ・展開
 - `JavaScript.html`: クライアント側処理
 - `appsscript.json`: Apps Scriptマニフェスト
 - `workspace-studio-prompts.md`: Workspace Studio用プロンプト
@@ -55,5 +60,6 @@ Google Chatの取得はApps Script自身のOAuthトークンを利用します�
 ## 注意点
 
 - Google Chat `messages.list` は `createTime` で差分取得できますが、`lastUpdateTime` では絞り込めません。そのため、古い投稿の編集反映用に定期的な全件同期を行います。
+- Catalogは毎回全件を書き直さず、新規スレッドを `appendRow()` で末尾に追加します。既存スレッドのAI生成列は保持し、元投稿に変更があった場合のみ元データ列と `AI処理状態` を更新します。
 - `ChatLink.gs` はGoogle Chatのコピーリンク形式に合わせ、`https://chat.google.com/room/{spaceId}/{threadId}/{messageId}?cls=10` を生成します。
 - Workspace Studioの紹介文生成では、URLやハイパーリンク文字列を出力しないようプロンプトで制約しています。既存データに長いURLが残っていても、Web UI側では折り返してカードからはみ出さないようにしています。
