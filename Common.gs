@@ -60,10 +60,6 @@ function formatWebDate_(value) {
   );
 }
 
-function normalizeEmail_(email) {
-  return String(email || '').trim().toLowerCase();
-}
-
 function withScriptLock_(callback) {
   const lock = LockService.getScriptLock();
 
