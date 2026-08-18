@@ -1,19 +1,33 @@
 /**
- * 掲載済みCatalogと「今日の発見」だけをメルマガ専用スプレッドシートへ同期する。
- * Chat本文・AI処理用本文・Workspace Studio管理列は出力しない。
+ * 「今日の発見」3件だけをメルマガ専用スプレッドシートへ同期する。
+ * Chat本文・AI処理用本文・Catalog全体は外へ出さない。
  */
 function syncNewsletterData() {
-  const newsletterSs = openNewsletterSpreadsheet_();
+  const newsletterSs = SpreadsheetApp.openById(getRequiredNewsletterSpreadsheetId_());
   const items = getPublishedCatalogItems_();
   const discovery = getTodaysDiscovery_(items);
+  const dateKey = getDiscoveryDateKey_(new Date());
 
-  writeNewsletterCatalog_(newsletterSs, items);
-  writeNewsletterDiscovery_(newsletterSs, discovery);
+  const rows = discovery.map(pick => [
+    dateKey,
+    pick.badge,
+    pick.item.threadId,
+    pick.item.title,
+    pick.item.description,
+    (pick.item.tags || []).join(', '),
+    pick.item.chatUrl
+  ]);
+
+  replaceSheetData_(
+    newsletterSs,
+    CONFIG.NEWSLETTER_DISCOVERY_SHEET,
+    NEWSLETTER_DISCOVERY_HEADERS,
+    rows
+  );
 
   return {
-    catalogCount: items.length,
-    discoveryCount: discovery.length,
-    date: getDiscoveryDateKey_(new Date())
+    discoveryCount: rows.length,
+    date: dateKey
   };
 }
 
@@ -29,51 +43,6 @@ function trySyncNewsletterData_() {
   } catch (error) {
     console.error(`メルマガ用データ同期に失敗しました: ${error.message}`);
   }
-}
-
-function writeNewsletterCatalog_(ss, items) {
-  const rows = items.map(item => [
-    item.threadId,
-    item.parentPostId,
-    item.firstPostAt,
-    item.lastUpdatedAt,
-    item.title,
-    item.description,
-    (item.tags || []).join(', '),
-    item.chatUrl
-  ]);
-
-  replaceSheetData_(
-    ss,
-    CONFIG.NEWSLETTER_CATALOG_SHEET,
-    NEWSLETTER_CATALOG_HEADERS,
-    rows
-  );
-}
-
-function writeNewsletterDiscovery_(ss, picks) {
-  const dateKey = getDiscoveryDateKey_(new Date());
-  const rows = picks.map(pick => [
-    dateKey,
-    pick.badge,
-    pick.item.threadId,
-    pick.item.title,
-    pick.item.description,
-    (pick.item.tags || []).join(', '),
-    pick.item.chatUrl
-  ]);
-
-  replaceSheetData_(
-    ss,
-    CONFIG.NEWSLETTER_DISCOVERY_SHEET,
-    NEWSLETTER_DISCOVERY_HEADERS,
-    rows
-  );
-}
-
-function openNewsletterSpreadsheet_() {
-  const spreadsheetId = getRequiredNewsletterSpreadsheetId_();
-  return SpreadsheetApp.openById(spreadsheetId);
 }
 
 function hasConfiguredNewsletterSpreadsheet_() {
