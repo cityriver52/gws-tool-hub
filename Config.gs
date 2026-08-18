@@ -9,14 +9,12 @@ const CONFIG = {
   OVERLAP_MINUTES: 30,
   LAST_SYNC_PROPERTY: 'LAST_CHAT_SYNC_AT',
 
-  // 個人配信設定用WebアプリのURL。
-  // 同じApps Scriptプロジェクトを「アクセスしているユーザーとして実行」で
-  // 別デプロイし、その /exec URL を設定する。
-  SUBSCRIPTION_WEB_APP_URL: 'ここに個人配信設定用WebアプリURL',
+  // メルマガ専用の第2スプレッドシートID。
+  // 元スプレッドシートとは分離し、組織内の購読者にはこちらだけ閲覧権限を付与する。
+  NEWSLETTER_SPREADSHEET_ID: 'ここにメルマガ用スプレッドシートID',
 
-  // 個人トリガーの実行時間帯。Apps Scriptの時間主導トリガーなので、
-  // 指定時刻ちょうどではなく、この時間帯の中で実行される。
-  DAILY_DISCOVERY_HOUR: 8
+  // 別Apps Scriptプロジェクトとしてデプロイする個人配信設定Webアプリの /exec URL。
+  SUBSCRIPTION_WEB_APP_URL: 'ここにメルマガ用WebアプリURL'
 };
 
 const CHAT_HEADERS = [
