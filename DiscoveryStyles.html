@@ -11,6 +11,10 @@
   }
 
   .discovery-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
     margin-bottom: 20px;
   }
 
@@ -28,6 +32,30 @@
     margin: 7px 0 0;
     color: var(--text-subtle);
     font-size: 13px;
+  }
+
+  .daily-subscription-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    flex: 0 0 auto;
+    padding: 10px 15px;
+    border: 1px solid #cbd9f5;
+    border-radius: 12px;
+    background: #ffffff;
+    color: var(--accent-dark);
+    font-size: 13px;
+    font-weight: 750;
+    text-decoration: none;
+    box-shadow: 0 5px 14px rgba(42, 74, 137, 0.08);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+  }
+
+  .daily-subscription-button:hover {
+    background: var(--accent-light);
+    box-shadow: 0 8px 18px rgba(42, 74, 137, 0.13);
+    transform: translateY(-1px);
   }
 
   .random-discovery-action {
@@ -166,9 +194,15 @@
       border-radius: 19px;
     }
 
+    .discovery-heading {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
     .discovery-title,
     .catalog-section-title { font-size: 21px; }
 
+    .daily-subscription-button { width: 100%; }
     .random-discovery-action { margin-top: 16px; }
     .surprise-button { width: 100%; }
     .catalog-section-heading { margin-bottom: 13px; }
