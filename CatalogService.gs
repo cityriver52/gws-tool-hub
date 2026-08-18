@@ -42,6 +42,7 @@ function getCatalogData() {
       const parentPostId = String(row[column['親投稿ID']] || '');
       const tags = parseTags_(row[column['タグ']]);
       const firstPost = row[column['初回投稿日']];
+      const lastUpdated = row[column['最終更新日時']] || firstPost;
 
       tags.forEach(tag => tagSet.add(tag));
 
@@ -53,7 +54,8 @@ function getCatalogData() {
         tags,
         firstPostAt: formatWebDate_(firstPost),
         firstPostTimestamp: getTime_(firstPost),
-        lastUpdatedAt: formatWebDate_(row[column['最終更新日時']]),
+        lastUpdatedAt: formatWebDate_(lastUpdated),
+        lastUpdatedTimestamp: getTime_(lastUpdated),
         searchText: [
           row[column['タイトル']],
           row[column['紹介文']],
@@ -66,7 +68,8 @@ function getCatalogData() {
       };
     });
 
-  items.sort((a, b) => b.firstPostTimestamp - a.firstPostTimestamp);
+  // デフォルト表示は、返信や編集を含む最終更新日時が新しいものから並べる。
+  items.sort((a, b) => b.lastUpdatedTimestamp - a.lastUpdatedTimestamp);
 
   const tags = Array.from(tagSet).sort((a, b) => a.localeCompare(b, 'ja'));
 
