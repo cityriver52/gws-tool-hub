@@ -1,8 +1,11 @@
 /**
  * Google Chatの親投稿へ直接移動するURLを生成する。
  *
+ * Google Chatの「リンクをコピー」で得られる形式に合わせ、
+ * cls=10 を付けてメッセージを開く。
+ *
  * URL形式:
- * https://chat.google.com/room/{spaceId}/{threadId}/{messageId}
+ * https://chat.google.com/room/{spaceId}/{threadId}/{messageId}?cls=10
  *
  * threadId:
  *   spaces/{spaceId}/threads/{threadId}
@@ -26,6 +29,7 @@ function buildChatUrl_(threadId, parentPostId) {
     'https://chat.google.com/room/' +
     encodeURIComponent(spaceId) + '/' +
     encodeURIComponent(threadResourceId) + '/' +
-    encodeURIComponent(messageId)
+    encodeURIComponent(messageId) +
+    '?cls=10'
   );
 }
