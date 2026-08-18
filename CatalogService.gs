@@ -10,7 +10,12 @@ function getCatalogData() {
   }
 
   if (sheet.getLastRow() < 2) {
-    return { items: [], tags: [], generatedAt: formatWebDate_(new Date()) };
+    return {
+      items: [],
+      tags: [],
+      dailyDiscovery: [],
+      generatedAt: formatWebDate_(new Date())
+    };
   }
 
   const values = sheet.getDataRange().getValues();
@@ -75,6 +80,7 @@ function getCatalogData() {
   return {
     items,
     tags,
+    dailyDiscovery: getTodaysDiscovery_(items),
     generatedAt: formatWebDate_(new Date())
   };
 }
