@@ -4,6 +4,7 @@ const CONFIG = {
 
   CHAT_SHEET: 'ChatMessages',
   CATALOG_SHEET: 'Catalog',
+  SUBSCRIBERS_SHEET: 'Subscribers',
 
   TIMEZONE: 'Asia/Tokyo',
   OVERLAP_MINUTES: 30,
@@ -30,4 +31,8 @@ const CATALOG_HEADERS = [
   'タグ',
   '掲載判定',
   'AI処理状態'
+];
+
+const SUBSCRIBER_HEADERS = [
+  'メールアドレス'
 ];
