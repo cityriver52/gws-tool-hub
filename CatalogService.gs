@@ -22,7 +22,7 @@ function getCatalogData() {
     '親投稿ID',
     '初回投稿日',
     '最終更新日時',
-    'スレッド本文',
+    'AI処理用本文',
     'タイトル',
     '紹介文',
     'タグ',
@@ -60,7 +60,7 @@ function getCatalogData() {
           row[column['タイトル']],
           row[column['紹介文']],
           row[column['タグ']],
-          row[column['スレッド本文']]
+          row[column['AI処理用本文']]
         ]
           .map(value => String(value || ''))
           .join('\n'),
@@ -68,7 +68,6 @@ function getCatalogData() {
       };
     });
 
-  // デフォルト表示は、返信や編集を含む最終更新日時が新しいものから並べる。
   items.sort((a, b) => b.lastUpdatedTimestamp - a.lastUpdatedTimestamp);
 
   const tags = Array.from(tagSet).sort((a, b) => a.localeCompare(b, 'ja'));
