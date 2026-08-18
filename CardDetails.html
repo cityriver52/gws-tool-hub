@@ -1,0 +1,108 @@
+<style>
+  .card-description.is-collapsible {
+    position: relative;
+    max-height: var(--collapsed-description-height);
+    margin-bottom: 7px;
+    overflow: hidden;
+  }
+
+  .card-description.is-collapsible:not(.is-expanded) {
+    -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  }
+
+  .card-description.is-collapsible.is-expanded {
+    max-height: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .details-toggle {
+    align-self: flex-start;
+    margin: 0 0 16px;
+    padding: 4px 0;
+    border: none;
+    background: transparent;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  .details-toggle:hover {
+    color: var(--accent-dark);
+    text-decoration: underline;
+  }
+
+  .catalog-grid,
+  .discovery-grid {
+    align-items: start;
+  }
+</style>
+
+<script>
+  (() => {
+    const COLLAPSED_LINES = 4;
+    let scanScheduled = false;
+
+    function scheduleExpandableScan_() {
+      if (scanScheduled) return;
+      scanScheduled = true;
+
+      requestAnimationFrame(() => {
+        scanScheduled = false;
+        setupExpandableDescriptions_();
+      });
+    }
+
+    function setupExpandableDescriptions_() {
+      document
+        .querySelectorAll('.card-description:not([data-expandable-ready])')
+        .forEach(description => {
+          description.dataset.expandableReady = 'true';
+
+          const style = window.getComputedStyle(description);
+          const fontSize = parseFloat(style.fontSize) || 14;
+          const parsedLineHeight = parseFloat(style.lineHeight);
+          const lineHeight = Number.isFinite(parsedLineHeight)
+            ? parsedLineHeight
+            : fontSize * 1.78;
+          const collapsedHeight = lineHeight * COLLAPSED_LINES;
+
+          if (description.scrollHeight <= collapsedHeight + 2) {
+            return;
+          }
+
+          description.style.setProperty(
+            '--collapsed-description-height',
+            `${collapsedHeight}px`
+          );
+          description.classList.add('is-collapsible');
+
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'details-toggle';
+          button.textContent = '詳細を表示';
+          button.setAttribute('aria-expanded', 'false');
+
+          button.addEventListener('click', () => {
+            const expanded = description.classList.toggle('is-expanded');
+            button.textContent = expanded ? '詳細を閉じる' : '詳細を表示';
+            button.setAttribute('aria-expanded', String(expanded));
+          });
+
+          description.insertAdjacentElement('afterend', button);
+        });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      scheduleExpandableScan_();
+
+      const observer = new MutationObserver(scheduleExpandableScan_);
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    });
+  })();
+</script>
