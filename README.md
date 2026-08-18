@@ -10,8 +10,7 @@ Google Chatのスペースに投稿されたGoogle Workspaceの活用アイデ�
 - Workspace Studioによる掲載判定・タイトル・紹介文・タグ生成を想定
 - 掲載済みアイデアのキーワード検索
 - タグ絞り込み
-- 「使ってます」人数の表示と登録／解除
-- 利用者のメールアドレスは内部IDとしてのみ保存し、Web画面には表示しない
+- 元になったGoogle Chatの親投稿へ直接移動
 
 ## スプレッドシート構成
 
@@ -25,13 +24,6 @@ Google Chatのスペースに投稿されたGoogle Workspaceの活用アイデ�
 | スレッドID | 親投稿ID | 初回投稿日 | 最終更新日時 | スレッド本文 | タイトル | 紹介文 | タグ | 掲載判定 | AI処理状態 | AI処理日時 |
 |---|---|---|---|---|---|---|---|---|---|---|
 
-### Usage
-
-| スレッドID | ユーザーID | 登録日時 |
-|---|---|---|
-
-`ユーザーID`には組織内ユーザーのメールアドレスを保存します。Webクライアントにはメールアドレスを返しません。
-
 ## ファイル構成
 
 - `Config.gs`: 設定・シート定義
@@ -40,8 +32,7 @@ Google Chatのスペースに投稿されたGoogle Workspaceの活用アイデ�
 - `CatalogBuilder.gs`: スレッド単位のCatalog生成
 - `WebApp.gs`: Webアプリ入口
 - `CatalogService.gs`: Web表示用データ取得
-- `ChatLink.gs`: Google Chatリンク生成
-- `UsageService.gs`: 「使ってます」登録・解除
+- `ChatLink.gs`: Google Chatの親投稿へのリンク生成
 - `Index.html`: 画面構造
 - `Stylesheet.html`: CSS
 - `JavaScript.html`: クライアント側処理
@@ -50,23 +41,19 @@ Google Chatのスペースに投稿されたGoogle Workspaceの活用アイデ�
 
 ## 初期設定
 
-1. スプレッドシートに上記3シートとヘッダーを作成する。
+1. スプレッドシートに `ChatMessages` と `Catalog` シートを作成し、上記ヘッダーを設定する。
 2. コンテナバインドApps Scriptに各ファイルを配置する。
 3. `Config.gs` の `SPACE_NAME` を対象スペースのリソース名に変更する。
-4. Google CloudプロジェクトでGoogle Chat APIを有効化する。
-5. `runFullSync()` を一度手動実行する。
-6. `runScheduledSync()` を10分程度の時間主導トリガーに設定する。
-7. 古い投稿の編集も拾うため、`runFullSync()` を1日1回程度実行する。
-8. Workspace Studioで `AI処理状態 = 未処理 / 要再処理` のCatalog行を処理する。
-9. Webアプリとしてデプロイする。
+4. `runFullSync()` を一度手動実行する。
+5. `runScheduledSync()` を10分程度の時間主導トリガーに設定する。
+6. 古い投稿の編集も拾うため、`runFullSync()` を1日1回程度実行する。
+7. Workspace Studioで `AI処理状態 = 未処理 / 要再処理` のCatalog行を処理する。
+8. Webアプリとしてデプロイする。
 
-## Webアプリの実行設定
-
-組織内限定で利用します。
-
-`Session.getActiveUser().getEmail()` を利用して「使ってます」の内部ユーザーIDを取得します。同一Google Workspaceドメインでは「デプロイしたユーザーとして実行」でも取得できる場合があります。環境で空文字になる場合はWebアプリの実行方式を見直してください。
+Google Chatの取得はApps Script自身のOAuthトークンを利用します。APIキー、サービスアカウント、自前のGoogle Cloudプロジェクトでの認証情報管理は前提としていません。
 
 ## 注意点
 
 - Google Chat `messages.list` は `createTime` で差分取得できますが、`lastUpdateTime` では絞り込めません。そのため、古い投稿の編集反映用に定期的な全件同期を行います。
-- `ChatLink.gs` は現在、個別メッセージではなく対象スペースを開くURLを生成します。個別permalinkの生成方式を確定した場合は、このファイルだけ差し替えられます。
+- `ChatLink.gs` はGoogle Chatのコピーリンク形式に合わせ、`https://chat.google.com/room/{spaceId}/{threadId}/{messageId}?cls=10` を生成します。
+- Workspace Studioの紹介文生成では、URLやハイパーリンク文字列を出力しないようプロンプトで制約しています。既存データに長いURLが残っていても、Web UI側では折り返してカードからはみ出さないようにしています。
