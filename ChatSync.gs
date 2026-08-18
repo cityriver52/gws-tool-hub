@@ -9,6 +9,7 @@ function runScheduledSync() {
 
     const result = syncChatMessages_(ss, false);
     rebuildCatalog_(ss);
+    trySyncNewsletterData_();
 
     console.log(
       `通常同期完了: 新規 ${result.inserted}件 / 更新 ${result.updated}件`
@@ -28,6 +29,7 @@ function runFullSync() {
 
     const result = syncChatMessages_(ss, true);
     rebuildCatalog_(ss);
+    trySyncNewsletterData_();
 
     console.log(`全件同期完了: ${result.total}件`);
     return result;
