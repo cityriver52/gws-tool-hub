@@ -11,7 +11,12 @@
  *   spaces/{spaceId}/threads/{threadId}
  *
  * parentPostId:
- *   spaces/{spaceId}/messages/{messageId}
+ *   spaces/{spaceId}/messages/{apiMessageId}
+ *
+ * Google Chat APIのメッセージIDは、
+ *   {threadId}.{messageId}
+ * の形式で返る場合があるため、Web版ChatのURLでは
+ * 最後の「.」より後ろだけをmessageIdとして使用する。
  */
 function buildChatUrl_(threadId, parentPostId) {
   if (!threadId || !parentPostId) return '';
@@ -21,7 +26,8 @@ function buildChatUrl_(threadId, parentPostId) {
 
   const spaceId = messageParts[1] || '';
   const threadResourceId = threadParts[threadParts.length - 1] || '';
-  const messageId = messageParts[messageParts.length - 1] || '';
+  const apiMessageId = messageParts[messageParts.length - 1] || '';
+  const messageId = apiMessageId.split('.').pop() || '';
 
   if (!spaceId || !threadResourceId || !messageId) return '';
 
