@@ -1,81 +1,10 @@
 /**
- * 掲載判定が「掲載」のCatalogだけをWebアプリへ返す。
+ * Webアプリへ返す表示用データを組み立てる。
+ * Catalogの読み取り責務はCatalogRepository.gsに集約する。
  */
 function getCatalogData() {
-  const ss = getSpreadsheet_();
-  const sheet = ss.getSheetByName(CONFIG.CATALOG_SHEET);
-
-  if (!sheet) {
-    throw new Error(`シート「${CONFIG.CATALOG_SHEET}」がありません。`);
-  }
-
-  if (sheet.getLastRow() < 2) {
-    return {
-      items: [],
-      tags: [],
-      dailyDiscovery: [],
-      generatedAt: formatWebDate_(new Date())
-    };
-  }
-
-  const values = sheet.getDataRange().getValues();
-  const headers = values.shift();
-  const column = createColumnMap_(headers);
-
-  [
-    'スレッドID',
-    '親投稿ID',
-    '初回投稿日',
-    '最終更新日時',
-    'AI処理用本文',
-    'タイトル',
-    '紹介文',
-    'タグ',
-    '掲載判定'
-  ].forEach(name => {
-    if (column[name] === undefined) {
-      throw new Error(`Catalogシートに「${name}」列がありません。`);
-    }
-  });
-
-  const tagSet = new Set();
-
-  const items = values
-    .filter(row => String(row[column['掲載判定']] || '').trim() === '掲載')
-    .map(row => {
-      const threadId = String(row[column['スレッドID']] || '');
-      const parentPostId = String(row[column['親投稿ID']] || '');
-      const tags = parseTags_(row[column['タグ']]);
-      const firstPost = row[column['初回投稿日']];
-      const lastUpdated = row[column['最終更新日時']] || firstPost;
-
-      tags.forEach(tag => tagSet.add(tag));
-
-      return {
-        threadId,
-        parentPostId,
-        title: String(row[column['タイトル']] || 'タイトル未設定'),
-        description: String(row[column['紹介文']] || ''),
-        tags,
-        firstPostAt: formatWebDate_(firstPost),
-        firstPostTimestamp: getTime_(firstPost),
-        lastUpdatedAt: formatWebDate_(lastUpdated),
-        lastUpdatedTimestamp: getTime_(lastUpdated),
-        searchText: [
-          row[column['タイトル']],
-          row[column['紹介文']],
-          row[column['タグ']],
-          row[column['AI処理用本文']]
-        ]
-          .map(value => String(value || ''))
-          .join('\n'),
-        chatUrl: buildChatUrl_(threadId, parentPostId)
-      };
-    });
-
-  items.sort((a, b) => b.lastUpdatedTimestamp - a.lastUpdatedTimestamp);
-
-  const tags = Array.from(tagSet).sort((a, b) => a.localeCompare(b, 'ja'));
+  const items = getPublishedCatalogItems_();
+  const tags = collectCatalogTags_(items);
 
   return {
     items,
@@ -85,24 +14,11 @@ function getCatalogData() {
   };
 }
 
-function parseTags_(value) {
-  if (!value) return [];
+function collectCatalogTags_(items) {
+  const tagSet = new Set();
+  items.forEach(item => {
+    (item.tags || []).forEach(tag => tagSet.add(tag));
+  });
 
-  const result = [];
-  const seen = new Set();
-
-  String(value)
-    .split(/[,、，\n]+/)
-    .forEach(tag => {
-      const normalized = tag.trim().replace(/^#+/, '');
-      if (!normalized) return;
-
-      const key = normalized.toLowerCase();
-      if (seen.has(key)) return;
-
-      seen.add(key);
-      result.push(normalized);
-    });
-
-  return result;
+  return Array.from(tagSet).sort((a, b) => a.localeCompare(b, 'ja'));
 }
