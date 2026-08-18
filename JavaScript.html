@@ -41,6 +41,11 @@
     document.getElementById('loading').classList.add('hidden');
     document.getElementById('catalogGrid').classList.remove('hidden');
 
+    const generatedAt = document.getElementById('generatedAt');
+    generatedAt.textContent = data.generatedAt
+      ? `表示更新 ${data.generatedAt}`
+      : '';
+
     renderTagButtons();
     renderCatalog();
   }
@@ -88,7 +93,10 @@
       button.classList.toggle('active', selectedTags.has(buttonTag));
     });
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.querySelector('.filter-panel')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
     renderCatalog();
   }
 
@@ -170,7 +178,9 @@
 
     const date = document.createElement('span');
     date.className = 'card-date';
-    date.textContent = item.firstPostAt;
+    date.textContent = item.lastUpdatedAt
+      ? `更新 ${item.lastUpdatedAt}`
+      : `投稿 ${item.firstPostAt}`;
     footer.appendChild(date);
 
     if (item.chatUrl) {
@@ -179,7 +189,7 @@
       link.href = item.chatUrl;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      link.textContent = 'Chatを開く ↗';
+      link.textContent = 'Chatで見る →';
       footer.appendChild(link);
     }
 
