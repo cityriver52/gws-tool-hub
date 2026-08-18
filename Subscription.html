@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: #f4f7fb;
+      color: #1f2937;
+      font-family: Arial, 'Noto Sans JP', sans-serif;
+    }
+    .panel {
+      width: min(560px, 100%);
+      padding: 30px;
+      background: #fff;
+      border: 1px solid #dfe6f2;
+      border-radius: 22px;
+      box-shadow: 0 18px 50px rgba(35, 48, 77, .10);
+    }
+    .kicker { margin: 0 0 6px; font-size: 11px; font-weight: 800; letter-spacing: .09em; color: #718096; }
+    h1 { margin: 0; font-size: 26px; line-height: 1.4; }
+    .lead { margin: 12px 0 0; color: #667085; line-height: 1.8; font-size: 14px; }
+    .status {
+      margin: 22px 0 0;
+      padding: 16px;
+      border-radius: 14px;
+      background: #f7f9fc;
+      color: #52627c;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .status.active { background: #ecf8f2; color: #176b50; }
+    .actions { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 14px;
+      font-weight: 750;
+      cursor: pointer;
+    }
+    .primary { background: #2f6fed; color: #fff; }
+    .secondary { background: #eef2f7; color: #45536b; }
+    button:disabled { opacity: .55; cursor: wait; }
+    .note { margin: 18px 0 0; color: #8a94a6; font-size: 12px; line-height: 1.7; }
+    .error { margin-top: 16px; color: #b42318; font-size: 13px; white-space: pre-wrap; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <p class="kicker">GWS TOOL HUB</p>
+    <h1>毎日「今日の発見」を受け取る</h1>
+    <p class="lead">あなた自身のGoogleアカウントに個人トリガーを1つ作り、毎日「今日の発見」3件を自分から自分宛てにメールします。</p>
+
+    <div id="status" class="status">配信設定を確認しています...</div>
+
+    <div class="actions">
+      <button id="subscribeButton" class="primary hidden" type="button">毎日受け取る</button>
+      <button id="unsubscribeButton" class="secondary hidden" type="button">配信を停止する</button>
+    </div>
+
+    <p class="note">購読者一覧は作成しません。配信状態は、あなた自身がこのスクリプトに持っている時間主導トリガーの有無だけで管理します。</p>
+    <div id="error" class="error hidden"></div>
+  </main>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const subscribeButton = document.getElementById('subscribeButton');
+    const unsubscribeButton = document.getElementById('unsubscribeButton');
+    const errorEl = document.getElementById('error');
+
+    window.addEventListener('DOMContentLoaded', loadStatus);
+    subscribeButton.addEventListener('click', subscribe);
+    unsubscribeButton.addEventListener('click', unsubscribe);
+
+    function loadStatus() {
+      setBusy(true);
+      google.script.run
+        .withSuccessHandler(renderStatus)
+        .withFailureHandler(showError)
+        .getMyDailyDiscoverySubscriptionStatus();
+    }
+
+    function subscribe() {
+      setBusy(true);
+      google.script.run
+        .withSuccessHandler(renderStatus)
+        .withFailureHandler(showError)
+        .subscribeMyDailyDiscovery();
+    }
+
+    function unsubscribe() {
+      setBusy(true);
+      google.script.run
+        .withSuccessHandler(renderStatus)
+        .withFailureHandler(showError)
+        .unsubscribeMyDailyDiscovery();
+    }
+
+    function renderStatus(data) {
+      setBusy(false);
+      errorEl.classList.add('hidden');
+
+      if (data.subscribed) {
+        statusEl.classList.add('active');
+        statusEl.textContent = `✓ 毎日配信中です。${data.email} に、毎日 ${data.hour}時台に届きます。`;
+        subscribeButton.classList.add('hidden');
+        unsubscribeButton.classList.remove('hidden');
+      } else {
+        statusEl.classList.remove('active');
+        statusEl.textContent = `${data.email} は現在、毎日配信を受け取っていません。`;
+        subscribeButton.classList.remove('hidden');
+        unsubscribeButton.classList.add('hidden');
+      }
+    }
+
+    function showError(error) {
+      setBusy(false);
+      errorEl.textContent = error && error.message ? error.message : String(error);
+      errorEl.classList.remove('hidden');
+    }
+
+    function setBusy(busy) {
+      subscribeButton.disabled = busy;
+      unsubscribeButton.disabled = busy;
+    }
+  </script>
+</body>
+</html>
