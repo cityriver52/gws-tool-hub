@@ -7,7 +7,6 @@ const CONFIG = {
 
   // メルマガ専用の第2スプレッドシート。
   NEWSLETTER_SPREADSHEET_ID: 'ここにメルマガ用スプレッドシートID',
-  NEWSLETTER_CATALOG_SHEET: 'NewsletterCatalog',
   NEWSLETTER_DISCOVERY_SHEET: 'DailyDiscovery',
 
   // メルマガ設定Webアプリ。Hubの「毎日受け取る」から開く。
@@ -38,17 +37,6 @@ const CATALOG_HEADERS = [
   'タグ',
   '掲載判定',
   'AI処理状態'
-];
-
-const NEWSLETTER_CATALOG_HEADERS = [
-  'スレッドID',
-  '親投稿ID',
-  '初回投稿日',
-  '最終更新日時',
-  'タイトル',
-  '紹介文',
-  'タグ',
-  'Chat URL'
 ];
 
 const NEWSLETTER_DISCOVERY_HEADERS = [
