@@ -11,10 +11,6 @@
   }
 
   .discovery-heading {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 24px;
     margin-bottom: 20px;
   }
 
@@ -34,13 +30,19 @@
     font-size: 13px;
   }
 
+  .random-discovery-action {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
   .surprise-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 7px;
     flex: 0 0 auto;
-    padding: 10px 14px;
+    padding: 10px 16px;
     border: 1px solid #cbd9f5;
     border-radius: 12px;
     background: #ffffff;
@@ -136,17 +138,11 @@
   }
 
   .surprise-caption {
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     color: #3d7664;
     font-size: 12px;
     font-weight: 750;
   }
-
-  #surpriseCard {
-    max-width: 760px;
-  }
-
-  #surpriseCard .catalog-card { min-height: 0; }
 
   .catalog-section-heading {
     display: flex;
@@ -170,15 +166,10 @@
       border-radius: 19px;
     }
 
-    .discovery-heading {
-      align-items: stretch;
-      flex-direction: column;
-      gap: 14px;
-    }
-
     .discovery-title,
     .catalog-section-title { font-size: 21px; }
 
+    .random-discovery-action { margin-top: 16px; }
     .surprise-button { width: 100%; }
     .catalog-section-heading { margin-bottom: 13px; }
     .surprise-area { padding: 12px; }
