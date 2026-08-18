@@ -2,6 +2,7 @@
   let catalogItems = [];
   let allTags = [];
   let lastSurpriseThreadId = '';
+  let dailyDiscoveryThreadIds = new Set();
   const selectedTags = new Set();
 
   window.addEventListener('DOMContentLoaded', initialize);
@@ -72,11 +73,14 @@
     grid.innerHTML = '';
 
     if (catalogItems.length === 0) {
+      dailyDiscoveryThreadIds = new Set();
       section.classList.add('hidden');
       return;
     }
 
     const picks = getDailyPicks_(catalogItems);
+    dailyDiscoveryThreadIds = new Set(picks.map(pick => pick.item.threadId));
+
     picks.forEach(pick => {
       grid.appendChild(
         createCard(pick.item, {
@@ -173,9 +177,19 @@
   function showRandomDiscovery() {
     if (catalogItems.length === 0) return;
 
-    const candidates = catalogItems.length > 1
-      ? catalogItems.filter(item => item.threadId !== lastSurpriseThreadId)
-      : catalogItems;
+    // まずは「今日の3件」と直前のおまかせ結果を除外する。
+    let candidates = catalogItems.filter(item =>
+      !dailyDiscoveryThreadIds.has(item.threadId) &&
+      item.threadId !== lastSurpriseThreadId
+    );
+
+    // 件数が少ない場合は今日の3件も候補へ戻すが、直前の結果はできるだけ避ける。
+    if (candidates.length === 0) {
+      candidates = catalogItems.filter(item => item.threadId !== lastSurpriseThreadId);
+    }
+    if (candidates.length === 0) {
+      candidates = catalogItems;
+    }
 
     const item = candidates[Math.floor(Math.random() * candidates.length)];
     lastSurpriseThreadId = item.threadId;
