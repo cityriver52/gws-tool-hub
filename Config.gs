@@ -4,7 +4,6 @@ const CONFIG = {
 
   CHAT_SHEET: 'ChatMessages',
   CATALOG_SHEET: 'Catalog',
-  USAGE_SHEET: 'Usage',
 
   TIMEZONE: 'Asia/Tokyo',
   OVERLAP_MINUTES: 30,
@@ -32,10 +31,4 @@ const CATALOG_HEADERS = [
   '掲載判定',
   'AI処理状態',
   'AI処理日時'
-];
-
-const USAGE_HEADERS = [
-  'スレッドID',
-  'ユーザーID',
-  '登録日時'
 ];
