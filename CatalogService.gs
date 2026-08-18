@@ -1,6 +1,5 @@
 /**
  * 掲載判定が「掲載」のCatalogだけをWebアプリへ返す。
- * メールアドレスはブラウザへ返さない。
  */
 function getCatalogData() {
   const ss = getSpreadsheet_();
@@ -34,7 +33,6 @@ function getCatalogData() {
     }
   });
 
-  const usageData = getUsageSummary_();
   const tagSet = new Set();
 
   const items = values
@@ -64,9 +62,7 @@ function getCatalogData() {
         ]
           .map(value => String(value || ''))
           .join('\n'),
-        chatUrl: buildChatUrl_(threadId, parentPostId),
-        usageCount: usageData.counts[threadId] || 0,
-        isUsing: usageData.myThreads.has(threadId)
+        chatUrl: buildChatUrl_(threadId, parentPostId)
       };
     });
 
@@ -99,37 +95,6 @@ function parseTags_(value) {
       seen.add(key);
       result.push(normalized);
     });
-
-  return result;
-}
-
-function getUsageSummary_() {
-  const ss = getSpreadsheet_();
-  const sheet = ss.getSheetByName(CONFIG.USAGE_SHEET);
-
-  const result = {
-    counts: {},
-    myThreads: new Set()
-  };
-
-  if (!sheet || sheet.getLastRow() < 2) return result;
-
-  const myEmail = normalizeEmail_(Session.getActiveUser().getEmail());
-  const rows = sheet
-    .getRange(2, 1, sheet.getLastRow() - 1, 2)
-    .getValues();
-
-  rows.forEach(row => {
-    const threadId = String(row[0] || '');
-    const userEmail = normalizeEmail_(row[1]);
-    if (!threadId) return;
-
-    result.counts[threadId] = (result.counts[threadId] || 0) + 1;
-
-    if (myEmail && myEmail === userEmail) {
-      result.myThreads.add(threadId);
-    }
-  });
 
   return result;
 }
