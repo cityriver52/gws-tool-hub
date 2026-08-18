@@ -30,5 +30,6 @@ const CATALOG_HEADERS = [
   'タグ',
   '掲載判定',
   'AI処理状態',
-  'AI処理日時'
+  'AI処理日時',
+  'AI処理用本文'
 ];
