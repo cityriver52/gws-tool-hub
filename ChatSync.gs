@@ -1,89 +1,91 @@
-/**
- * 10分程度の定期トリガー用。
- * 新規投稿と直近の投稿を差分取得し、Catalogを再構築する。
- */
+/** 10分程度の定期トリガー用。 */
 function runScheduledSync() {
+  return runSyncPipeline_(false);
+}
+
+/** 初回および1日1回程度の全件同期用。 */
+function runFullSync() {
+  return runSyncPipeline_(true);
+}
+
+function runSyncPipeline_(fullSync) {
   return withScriptLock_(() => {
     const ss = getSpreadsheet_();
     validateSyncSheets_(ss);
 
-    const result = syncChatMessages_(ss, false);
+    const result = syncChatMessages_(ss, fullSync);
     rebuildCatalog_(ss);
     trySyncNewsletterData_();
 
-    console.log(
-      `通常同期完了: 新規 ${result.inserted}件 / 更新 ${result.updated}件`
-    );
+    logSyncResult_(result, fullSync);
     return result;
   });
 }
 
-/**
- * 初回および1日1回程度の全件同期用。
- * messages.listはlastUpdateTimeで絞れないため、古い投稿の編集を拾う用途にも使う。
- */
-function runFullSync() {
-  return withScriptLock_(() => {
-    const ss = getSpreadsheet_();
-    validateSyncSheets_(ss);
-
-    const result = syncChatMessages_(ss, true);
-    rebuildCatalog_(ss);
-    trySyncNewsletterData_();
-
+function logSyncResult_(result, fullSync) {
+  if (fullSync) {
     console.log(`全件同期完了: ${result.total}件`);
-    return result;
-  });
+    return;
+  }
+
+  console.log(
+    `通常同期完了: 新規 ${result.inserted}件 / 更新 ${result.updated}件`
+  );
 }
 
 function syncChatMessages_(ss, fullSync) {
-  const sheet = ss.getSheetByName(CONFIG.CHAT_SHEET);
+  const sheet = getRequiredSheet_(ss, CONFIG.CHAT_SHEET);
   const now = new Date();
-  let startTime = null;
-
-  if (!fullSync) {
-    const lastSync = PropertiesService
-      .getScriptProperties()
-      .getProperty(CONFIG.LAST_SYNC_PROPERTY);
-
-    if (lastSync) {
-      startTime = new Date(
-        new Date(lastSync).getTime() - CONFIG.OVERLAP_MINUTES * 60 * 1000
-      );
-    }
-  }
+  const startTime = fullSync ? null : getIncrementalStartTime_();
 
   const records = fetchChatMessages_(startTime)
     .map(message => convertMessageToRow_(message, now))
     .filter(Boolean);
 
-  // 初回または全件同期では取得結果で作り直す。
   if (fullSync || !startTime) {
-    records.sort((a, b) => getTime_(a[2]) - getTime_(b[2]));
-
-    if (sheet.getLastRow() >= 2) {
-      sheet
-        .getRange(2, 1, sheet.getLastRow() - 1, CHAT_HEADERS.length)
-        .clearContent();
-    }
-
-    if (records.length > 0) {
-      sheet
-        .getRange(2, 1, records.length, CHAT_HEADERS.length)
-        .setValues(records);
-    }
-
-    setLastSync_(now);
-    formatChatSheet_(sheet);
-
-    return {
-      total: records.length,
-      inserted: records.length,
-      updated: 0
-    };
+    return replaceChatMessages_(sheet, records, now);
   }
 
-  // 差分同期。投稿IDを主キーにupsertする。
+  return upsertChatMessages_(sheet, records, now);
+}
+
+function getIncrementalStartTime_() {
+  const lastSync = PropertiesService
+    .getScriptProperties()
+    .getProperty(CONFIG.LAST_SYNC_PROPERTY);
+
+  if (!lastSync) return null;
+
+  return new Date(
+    new Date(lastSync).getTime() - CONFIG.OVERLAP_MINUTES * 60 * 1000
+  );
+}
+
+function replaceChatMessages_(sheet, records, syncedAt) {
+  records.sort((a, b) => getTime_(a[2]) - getTime_(b[2]));
+
+  if (sheet.getLastRow() >= 2) {
+    sheet
+      .getRange(2, 1, sheet.getLastRow() - 1, CHAT_HEADERS.length)
+      .clearContent();
+  }
+
+  if (records.length > 0) {
+    sheet
+      .getRange(2, 1, records.length, CHAT_HEADERS.length)
+      .setValues(records);
+  }
+
+  finalizeChatSync_(sheet, syncedAt);
+
+  return {
+    total: records.length,
+    inserted: records.length,
+    updated: 0
+  };
+}
+
+function upsertChatMessages_(sheet, records, syncedAt) {
   const existingRows = sheet.getLastRow() >= 2
     ? sheet
         .getRange(2, 1, sheet.getLastRow() - 1, CHAT_HEADERS.length)
@@ -93,8 +95,9 @@ function syncChatMessages_(ss, fullSync) {
   const existingMap = new Map();
   existingRows.forEach((row, index) => {
     const messageId = String(row[0] || '');
-    if (!messageId) return;
-    existingMap.set(messageId, { rowNumber: index + 2, values: row });
+    if (messageId) {
+      existingMap.set(messageId, { rowNumber: index + 2, values: row });
+    }
   });
 
   const newRows = [];
@@ -110,12 +113,12 @@ function syncChatMessages_(ss, fullSync) {
       return;
     }
 
-    if (!rowsEqualIgnoringFetchTime_(existing.values, record)) {
-      sheet
-        .getRange(existing.rowNumber, 1, 1, CHAT_HEADERS.length)
-        .setValues([record]);
-      updated++;
-    }
+    if (rowsEqualIgnoringFetchTime_(existing.values, record)) return;
+
+    sheet
+      .getRange(existing.rowNumber, 1, 1, CHAT_HEADERS.length)
+      .setValues([record]);
+    updated++;
   });
 
   if (newRows.length > 0) {
@@ -124,8 +127,7 @@ function syncChatMessages_(ss, fullSync) {
       .setValues(newRows);
   }
 
-  setLastSync_(now);
-  formatChatSheet_(sheet);
+  finalizeChatSync_(sheet, syncedAt);
 
   return {
     total: records.length,
@@ -134,16 +136,17 @@ function syncChatMessages_(ss, fullSync) {
   };
 }
 
+function finalizeChatSync_(sheet, syncedAt) {
+  setLastSync_(syncedAt);
+  formatChatSheet_(sheet);
+}
+
 function fetchChatMessages_(startTime) {
   const allMessages = [];
   let pageToken = '';
 
   do {
-    // orderByは指定しない。
-    // Google Chat APIの既定値がcreateTime ASCのため、既定順序を利用する。
-    const params = {
-      pageSize: 1000
-    };
+    const params = { pageSize: 1000 };
 
     if (startTime) {
       params.filter = `createTime > "${startTime.toISOString()}"`;
@@ -172,21 +175,17 @@ function fetchChatMessages_(startTime) {
 function convertMessageToRow_(message, fetchedAt) {
   if (!message.name) return null;
 
-  const messageId = message.name;
-  const threadId = message.thread?.name || message.name;
   const createTime = message.createTime ? new Date(message.createTime) : '';
   const updateTime = message.lastUpdateTime
     ? new Date(message.lastUpdateTime)
     : createTime;
-  const text =
-    message.formattedText || message.text || message.fallbackText || '';
 
   return [
-    messageId,
-    threadId,
+    message.name,
+    message.thread?.name || message.name,
     createTime,
     updateTime,
-    text,
+    message.formattedText || message.text || message.fallbackText || '',
     fetchedAt
   ];
 }
@@ -227,11 +226,8 @@ function setLastSync_(date) {
 }
 
 function validateSyncSheets_(ss) {
-  const chatSheet = ss.getSheetByName(CONFIG.CHAT_SHEET);
-  const catalogSheet = ss.getSheetByName(CONFIG.CATALOG_SHEET);
-
-  if (!chatSheet) throw new Error(`シート「${CONFIG.CHAT_SHEET}」がありません。`);
-  if (!catalogSheet) throw new Error(`シート「${CONFIG.CATALOG_SHEET}」がありません。`);
+  const chatSheet = getRequiredSheet_(ss, CONFIG.CHAT_SHEET);
+  const catalogSheet = getRequiredSheet_(ss, CONFIG.CATALOG_SHEET);
 
   validateHeaders_(chatSheet, CHAT_HEADERS);
   validateHeaders_(catalogSheet, CATALOG_HEADERS);
