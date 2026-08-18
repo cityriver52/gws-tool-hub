@@ -15,8 +15,8 @@ function rebuildCatalog() {
  * - 新規スレッド: シート末尾へappendRow()で追記
  * とする。
  *
- * 「スレッド本文」は原文を保持し、「AI処理用本文」にはURLを除去した
- * テキストを保存する。Workspace StudioはAI処理用本文だけを参照する。
+ * Catalogには原文のスレッド本文を保持せず、URLを除去した
+ * 「AI処理用本文」だけを保存する。原文はChatMessagesに保持される。
  *
  * Webアプリ上の表示順はCatalogService.gs側で最終更新日時の降順にするため、
  * シート上の行順には依存しない。
@@ -37,8 +37,6 @@ function rebuildCatalog_(ss) {
         .getValues()
     : [];
 
-  // 既存Catalogは行番号も保持する。新規行を途中へ挿入しないため、
-  // Workspace Studioから見ても「末尾に新しい行が増える」形になる。
   const existingCatalog = new Map();
   existingCatalogRows.forEach((row, index) => {
     const threadId = String(row[0] || '');
@@ -86,19 +84,16 @@ function rebuildCatalog_(ss) {
         )
       )
     );
-    const threadText = buildThreadText_(messages);
-    const aiThreadText = buildAiThreadText_(threadText);
+    const aiThreadText = buildAiThreadText_(buildThreadText_(messages));
 
     const existing = existingCatalog.get(threadId);
 
     if (!existing) {
-      // 新しいスレッドは必ず末尾へ追記する。
       newRows.push([
         threadId,
         root.messageId,
         firstPostTime,
         lastUpdateTime,
-        threadText,
         aiThreadText,
         '', // タイトル
         '', // 紹介文
@@ -114,53 +109,32 @@ function rebuildCatalog_(ss) {
       String(old[1] || '') !== String(root.messageId || '') ||
       getTime_(old[2]) !== getTime_(firstPostTime) ||
       getTime_(old[3]) !== getTime_(lastUpdateTime) ||
-      String(old[4] || '') !== String(threadText || '');
+      String(old[4] || '') !== String(aiThreadText || '');
 
-    const oldAiThreadText = String(old[5] || '');
-    const aiTextChanged = oldAiThreadText !== aiThreadText;
-    const oldAiStatus = String(old[10] || '').trim();
+    const oldAiStatus = String(old[9] || '').trim();
 
     if (sourceChanged) {
-      // AI生成列は触らず、A〜Fの元データ＋AI処理用本文だけ更新する。
+      // AI生成列は触らず、A〜Eの元データ＋AI処理用本文だけ更新する。
       catalogSheet
-        .getRange(existing.rowNumber, 1, 1, 6)
+        .getRange(existing.rowNumber, 1, 1, 5)
         .setValues([[
           threadId,
           root.messageId,
           firstPostTime,
           lastUpdateTime,
-          threadText,
           aiThreadText
         ]]);
 
       catalogSheet
-        .getRange(existing.rowNumber, 11)
+        .getRange(existing.rowNumber, 10)
         .setValue(getAiStatusAfterSourceChange_(oldAiStatus));
-    } else if (aiTextChanged) {
-      // URL除去ロジックを変更した場合など、AI用本文だけ差分が出たときに更新する。
-      catalogSheet
-        .getRange(existing.rowNumber, 6)
-        .setValue(aiThreadText);
-
-      if (oldAiThreadText) {
-        catalogSheet
-          .getRange(existing.rowNumber, 11)
-          .setValue(getAiStatusAfterSourceChange_(oldAiStatus));
-      } else if (!oldAiStatus) {
-        catalogSheet
-          .getRange(existing.rowNumber, 11)
-          .setValue('未処理');
-      }
     } else if (!oldAiStatus) {
-      // 既存データで状態だけ空欄の場合は未処理に補正する。
       catalogSheet
-        .getRange(existing.rowNumber, 11)
+        .getRange(existing.rowNumber, 10)
         .setValue('未処理');
     }
   });
 
-  // 同期対象から消えたスレッドはCatalogからも削除する。
-  // 行番号がずれないよう下から削除する。
   const obsoleteRows = [];
   existingCatalog.forEach((entry, threadId) => {
     if (!activeThreadIds.has(threadId)) {
@@ -172,8 +146,6 @@ function rebuildCatalog_(ss) {
     .sort((a, b) => b - a)
     .forEach(rowNumber => catalogSheet.deleteRow(rowNumber));
 
-  // 同期1回で複数の新規スレッドが見つかった場合は、
-  // 古いもの→新しいものの順に末尾へ積む。
   newRows.sort((a, b) => getTime_(a[2]) - getTime_(b[2]));
   newRows.forEach(row => catalogSheet.appendRow(row));
 
@@ -210,40 +182,32 @@ function buildThreadText_(messages) {
  * - Markdownリンク: [表示名](URL) -> 表示名 [リンク省略]
  * - Chat等のリンク表現: <URL|表示名> -> 表示名 [リンク省略]
  * - <URL> / 生URL -> [リンク省略]
- *
- * リンクの表示名は、何について話しているかをAIが理解できるよう残す。
  */
 function buildAiThreadText_(threadText) {
   let text = String(threadText || '');
 
-  // Markdown形式のリンク。
   text = text.replace(
     /\[([^\]]+)\]\((?:https?:\/\/|www\.)[^)\s]+\)/gi,
     '$1 [リンク省略]'
   );
 
-  // <URL|表示名> の形式。
   text = text.replace(
     /<(?:(?:https?:\/\/)|(?:www\.))[^>|]+\|([^>]+)>/gi,
     '$1 [リンク省略]'
   );
 
-  // <URL> の形式。
   text = text.replace(
     /<(?:(?:https?:\/\/)|(?:www\.))[^>]+>/gi,
     '[リンク省略]'
   );
 
-  // 生のURL。日本語の閉じ括弧などはURLに含めない。
   text = text.replace(
     /(?:https?:\/\/|www\.)[^\s<>"'）】\]]+/gi,
     '[リンク省略]'
   );
 
-  // mailtoリンクも除去する。
   text = text.replace(/mailto:[^\s<>"']+/gi, '[メールリンク省略]');
 
-  // 連続して同じプレースホルダーだけが並んだ場合は整理する。
   text = text.replace(
     /(?:\[リンク省略\][ \t]*){2,}/g,
     '[リンク省略]'
