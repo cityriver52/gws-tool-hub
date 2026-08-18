@@ -137,9 +137,10 @@ function fetchChatMessages_(startTime) {
   let pageToken = '';
 
   do {
+    // orderByは指定しない。
+    // Google Chat APIの既定値がcreateTime ASCのため、既定順序を利用する。
     const params = {
-      pageSize: 1000,
-      orderBy: 'ASC'
+      pageSize: 1000
     };
 
     if (startTime) {
