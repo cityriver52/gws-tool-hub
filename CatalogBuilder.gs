@@ -99,13 +99,12 @@ function rebuildCatalog_(ss) {
         firstPostTime,
         lastUpdateTime,
         threadText,
+        aiThreadText,
         '', // タイトル
         '', // 紹介文
         '', // タグ
         '', // 掲載判定
-        '未処理',
-        '', // AI処理日時
-        aiThreadText
+        '未処理'
       ]);
       return;
     }
@@ -117,50 +116,45 @@ function rebuildCatalog_(ss) {
       getTime_(old[3]) !== getTime_(lastUpdateTime) ||
       String(old[4] || '') !== String(threadText || '');
 
-    const oldAiThreadText = String(old[11] || '');
+    const oldAiThreadText = String(old[5] || '');
     const aiTextChanged = oldAiThreadText !== aiThreadText;
+    const oldAiStatus = String(old[10] || '').trim();
 
     if (sourceChanged) {
-      // AI生成列は触らず、元データ部分とAI処理用本文だけ更新する。
+      // AI生成列は触らず、A〜Fの元データ＋AI処理用本文だけ更新する。
       catalogSheet
-        .getRange(existing.rowNumber, 1, 1, 5)
+        .getRange(existing.rowNumber, 1, 1, 6)
         .setValues([[
           threadId,
           root.messageId,
           firstPostTime,
           lastUpdateTime,
-          threadText
+          threadText,
+          aiThreadText
         ]]);
 
       catalogSheet
-        .getRange(existing.rowNumber, 12)
-        .setValue(aiThreadText);
-
-      const aiProcessedAt = old[10];
-      catalogSheet
-        .getRange(existing.rowNumber, 10)
-        .setValue(aiProcessedAt ? '要再処理' : '未処理');
+        .getRange(existing.rowNumber, 11)
+        .setValue(getAiStatusAfterSourceChange_(oldAiStatus));
     } else if (aiTextChanged) {
-      // 導入時の既存行も、次回同期またはrebuildCatalog()でAI用本文を補完する。
+      // URL除去ロジックを変更した場合など、AI用本文だけ差分が出たときに更新する。
       catalogSheet
-        .getRange(existing.rowNumber, 12)
+        .getRange(existing.rowNumber, 6)
         .setValue(aiThreadText);
 
-      // 既にAI処理用本文が存在していて生成結果が変わった場合のみ再処理扱い。
-      // 初回移行でL列が空だっただけなら、既存のAI処理状態は維持する。
-      if (oldAiThreadText && old[10]) {
+      if (oldAiThreadText) {
         catalogSheet
-          .getRange(existing.rowNumber, 10)
-          .setValue('要再処理');
-      } else if (!String(old[9] || '').trim()) {
+          .getRange(existing.rowNumber, 11)
+          .setValue(getAiStatusAfterSourceChange_(oldAiStatus));
+      } else if (!oldAiStatus) {
         catalogSheet
-          .getRange(existing.rowNumber, 10)
+          .getRange(existing.rowNumber, 11)
           .setValue('未処理');
       }
-    } else if (!String(old[9] || '').trim()) {
+    } else if (!oldAiStatus) {
       // 既存データで状態だけ空欄の場合は未処理に補正する。
       catalogSheet
-        .getRange(existing.rowNumber, 10)
+        .getRange(existing.rowNumber, 11)
         .setValue('未処理');
     }
   });
@@ -184,6 +178,17 @@ function rebuildCatalog_(ss) {
   newRows.forEach(row => catalogSheet.appendRow(row));
 
   formatCatalogSheet_(catalogSheet);
+}
+
+/**
+ * 元投稿が変わったときのAI処理状態を決める。
+ * すでに処理済み・処理中・再処理待ちなら要再処理、
+ * まだ処理されていないものは未処理に戻す。
+ */
+function getAiStatusAfterSourceChange_(status) {
+  return ['処理済', '処理中', '要再処理'].includes(String(status || '').trim())
+    ? '要再処理'
+    : '未処理';
 }
 
 function buildThreadText_(messages) {
@@ -252,9 +257,5 @@ function formatCatalogSheet_(sheet) {
 
   sheet
     .getRange(2, 3, sheet.getLastRow() - 1, 2)
-    .setNumberFormat('yyyy/mm/dd hh:mm:ss');
-
-  sheet
-    .getRange(2, 11, sheet.getLastRow() - 1, 1)
     .setNumberFormat('yyyy/mm/dd hh:mm:ss');
 }
