@@ -46,9 +46,6 @@
     allTags = data.tags || [];
     dailyDiscoveryPicks = data.dailyDiscovery || [];
 
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('catalogGrid').classList.remove('hidden');
-
     const generatedAt = document.getElementById('generatedAt');
     generatedAt.textContent = data.generatedAt
       ? `表示更新 ${data.generatedAt}`
@@ -57,16 +54,25 @@
     renderDailyDiscovery();
     renderTagButtons();
     renderCatalog();
+    revealApp();
   }
 
   function onCatalogError(error) {
-    document.getElementById('loading').classList.add('hidden');
+    const screen = document.getElementById('initialLoadingScreen');
+    const content = document.getElementById('initialLoadingContent');
+    const message = error && error.message ? error.message : String(error);
 
-    const area = document.getElementById('errorArea');
-    area.textContent =
-      'カタログを読み込めませんでした。\n' +
-      (error.message || String(error));
-    area.classList.remove('hidden');
+    content.className = 'initial-load-error';
+    content.textContent = 'カタログを読み込めませんでした。\n' + message;
+    screen.setAttribute('aria-live', 'assertive');
+  }
+
+  function revealApp() {
+    const app = document.getElementById('appShell');
+    const loading = document.getElementById('initialLoadingScreen');
+
+    app.classList.add('is-ready');
+    loading.remove();
   }
 
   function renderDailyDiscovery() {
