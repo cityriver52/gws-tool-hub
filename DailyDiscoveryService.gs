@@ -18,7 +18,7 @@ function getTodaysDiscovery_(items, date) {
     selectedIds.add(recentPick.threadId);
     picks.push({
       item: recentPick,
-      badge: 'ちょっと前から',
+      badge: 'ちょっと前の投稿から',
       modifier: 'pick-new'
     });
   }
@@ -37,7 +37,7 @@ function getTodaysDiscovery_(items, date) {
     selectedIds.add(oldPick.threadId);
     picks.push({
       item: oldPick,
-      badge: 'かなり前から',
+      badge: 'かなり前の投稿から',
       modifier: 'pick-rediscover'
     });
   }
@@ -49,7 +49,7 @@ function getTodaysDiscovery_(items, date) {
     const randomPick = randomPool[randomIndex];
     picks.push({
       item: randomPick,
-      badge: '今日のランダム',
+      badge: '全期間から',
       modifier: 'pick-random'
     });
   }
