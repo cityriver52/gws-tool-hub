@@ -1,4 +1,5 @@
 function buildDailyDiscoveryPlainText_(picks) {
+  const hubUrl = getHubWebAppUrl_();
   const settingsUrl = getSubscriptionSettingsUrl_();
   const lines = [
     '今日のGWS発見 3選',
@@ -18,6 +19,12 @@ function buildDailyDiscoveryPlainText_(picks) {
     lines.push('');
   });
 
+  if (hubUrl) {
+    lines.push('GWS Tool Hubを開く');
+    lines.push(hubUrl);
+    lines.push('');
+  }
+
   if (settingsUrl) {
     lines.push('配信停止はこちら');
     lines.push(settingsUrl);
@@ -28,9 +35,13 @@ function buildDailyDiscoveryPlainText_(picks) {
 
 function buildDailyDiscoveryHtml_(picks) {
   const cards = picks.map(renderDiscoveryCardHtml_).join('');
+  const hubUrl = escapeHtml_(getHubWebAppUrl_());
   const settingsUrl = escapeHtml_(getSubscriptionSettingsUrl_());
+  const hubLink = hubUrl
+    ? `<div style="margin-top:22px;"><a href="${hubUrl}" style="display:inline-block;padding:10px 16px;border-radius:10px;background:#2f6fed;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;">GWS Tool Hubを開く →</a></div>`
+    : '';
   const unsubscribeLink = settingsUrl
-    ? `<div style="margin-top:20px;font-size:12px;line-height:1.7;color:#8a94a6;"><a href="${settingsUrl}" style="color:#667085;text-decoration:underline;">配信停止はこちら</a></div>`
+    ? `<div style="margin-top:18px;font-size:12px;line-height:1.7;color:#8a94a6;"><a href="${settingsUrl}" style="color:#667085;text-decoration:underline;">配信停止はこちら</a></div>`
     : '';
 
   return `
@@ -42,6 +53,7 @@ function buildDailyDiscoveryHtml_(picks) {
           <div style="font-size:14px;color:#667085;">GWS Tool Hubから、今日の3件をお届けします。</div>
         </div>
         ${cards}
+        ${hubLink}
         ${unsubscribeLink}
       </div>
     </div>`;
