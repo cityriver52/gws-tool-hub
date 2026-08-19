@@ -56,3 +56,8 @@ function getRequiredEffectiveUserEmail_() {
 function getSubscriptionSettingsUrl_() {
   return String(ScriptApp.getService().getUrl() || '').trim();
 }
+
+function getHubWebAppUrl_() {
+  const url = String(CONFIG.HUB_WEB_APP_URL || '').trim();
+  return !url || url.includes('ここに') ? '' : url;
+}
