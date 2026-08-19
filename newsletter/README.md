@@ -23,10 +23,10 @@ Catalog全体やChat本文はNewsletter側へコピーしません。
 ## ファイル構成
 
 - `Config.gs` — 第2スプレッドシートID、シート名、配信時間帯
-- `Common.gs` — 列マップ、タグ解析、HTMLエスケープ、本人メール取得
+- `Common.gs` — 列マップ、タグ解析、HTMLエスケープ、本人メール取得、設定画面URL取得
 - `NewsletterRepository.gs` — 本日のDailyDiscovery取得
 - `PersonalSubscription.gs` — 購読状態、個人トリガー作成・削除、配信実行
-- `MailRenderer.gs` — プレーンテキスト/HTMLメール生成
+- `MailRenderer.gs` — プレーンテキスト/HTMLメール生成、配信停止リンク
 - `WebApp.gs` — 設定画面入口
 - `Subscription.html` — 購読/解除UI
 - `appsscript.json` — OAuthスコープ
@@ -62,11 +62,13 @@ DailyDiscoveryを読み取り
 
 ## OAuth権限
 
-Newsletterプロジェクトは次だけを要求します。
+Newsletterプロジェクトは次のスコープを使用します。
 
-- 第2スプレッドシートの読み取り
-- 自分の時間主導トリガーの作成・削除
-- 自分からメール送信
-- 自分のメールアドレス取得
+- `https://www.googleapis.com/auth/spreadsheets`
+- `https://www.googleapis.com/auth/script.scriptapp`
+- `https://www.googleapis.com/auth/script.send_mail`
+- `https://www.googleapis.com/auth/userinfo.email`
 
-Google Chatや元のGWS Tool Hubスプレッドシートへのアクセス権限は要求しません。
+Newsletter側は第2スプレッドシートを読み取るだけですが、実装で `SpreadsheetApp.openById()` を使用するため、Apps Scriptの仕様上 `spreadsheets.readonly` ではなく `spreadsheets` が必要です。
+
+Google Chatや元のGWS Tool Hubスプレッドシートにはアクセスしません。
