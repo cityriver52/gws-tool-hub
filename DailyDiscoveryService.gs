@@ -1,6 +1,7 @@
 /**
  * Web表示とメール配信で共通利用する「今日の発見」選定ロジック。
  * 同じ日・同じCatalogなら、誰が見ても同じ3件になる。
+ * items は最終更新日時の新しい順を前提とする。
  */
 function getTodaysDiscovery_(items, date) {
   if (!items || items.length === 0) return [];
@@ -9,13 +10,15 @@ function getTodaysDiscovery_(items, date) {
   const selectedIds = new Set();
   const picks = [];
 
-  // 1件目: 最終更新日時が最も新しいもの。
-  const newest = items[0];
-  if (newest) {
-    selectedIds.add(newest.threadId);
+  // 1件目: 最新3件を除外し、その次の最大27件（4〜30件目）から日替わりで1件。
+  const recentPool = items.slice(3, 30);
+  if (recentPool.length > 0) {
+    const recentIndex = seededDiscoveryIndex_(dateKey + ':recent', recentPool.length);
+    const recentPick = recentPool[recentIndex];
+    selectedIds.add(recentPick.threadId);
     picks.push({
-      item: newest,
-      badge: '新着から1件',
+      item: recentPick,
+      badge: 'ちょっと前から',
       modifier: 'pick-new'
     });
   }
@@ -29,12 +32,12 @@ function getTodaysDiscovery_(items, date) {
     .slice(0, oldPoolSize);
 
   if (oldPool.length > 0) {
-    const oldIndex = seededDiscoveryIndex_(dateKey + ':rediscover', oldPool.length);
+    const oldIndex = seededDiscoveryIndex_(dateKey + ':old', oldPool.length);
     const oldPick = oldPool[oldIndex];
     selectedIds.add(oldPick.threadId);
     picks.push({
       item: oldPick,
-      badge: '掘り起こし',
+      badge: 'かなり前から',
       modifier: 'pick-rediscover'
     });
   }
