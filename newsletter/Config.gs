@@ -3,6 +3,9 @@ const CONFIG = {
   NEWSLETTER_SPREADSHEET_ID: 'ここにメルマガ用スプレッドシートID',
   DISCOVERY_SHEET: 'DailyDiscovery',
 
+  // GWS Tool Hub本体のWebアプリURL。
+  HUB_WEB_APP_URL: 'ここにGWS Tool Hub本体のWebアプリURL',
+
   TIMEZONE: 'Asia/Tokyo',
 
   // 個人トリガーの実行時間帯。
