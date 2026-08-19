@@ -143,13 +143,14 @@ function finalizeChatSync_(sheet, syncedAt) {
 
 function fetchChatMessages_(startTime) {
   const allMessages = [];
+  const spaceName = getConfiguredSpaceName_();
   let pageToken = '';
 
   do {
     const params = { pageSize: 1000 };
 
     if (startTime) {
-      params.filter = `createTime > "${startTime.toISOString()}"`;
+      params.filter = `createTime > \"${startTime.toISOString()}\"`;
     }
     if (pageToken) {
       params.pageToken = pageToken;
@@ -162,7 +163,7 @@ function fetchChatMessages_(startTime) {
       .join('&');
 
     const url =
-      `https://chat.googleapis.com/v1/${CONFIG.SPACE_NAME}/messages?${query}`;
+      `https://chat.googleapis.com/v1/${spaceName}/messages?${query}`;
 
     const response = chatApiGet_(url);
     if (response.messages) allMessages.push(...response.messages);
@@ -170,6 +171,44 @@ function fetchChatMessages_(startTime) {
   } while (pageToken);
 
   return allMessages;
+}
+
+/**
+ * CONFIG.SPACE_NAME をGoogle Chat APIの resource name に正規化する。
+ * 次の入力を許容する。
+ * - spaces/AAAAAAAAAAA
+ * - AAAAAAAAAAA
+ * - https://chat.google.com/room/AAAAAAAAAAA/...
+ */
+function getConfiguredSpaceName_() {
+  const configured = String(CONFIG.SPACE_NAME || '').trim();
+
+  if (!configured || /ここに|スペースID/.test(configured)) {
+    throw new Error(
+      'Config.gs の SPACE_NAME が未設定です。対象ChatスペースのIDを設定してください。' +
+      ' 例: spaces/AAAAAAAAAAA'
+    );
+  }
+
+  const roomUrlMatch = configured.match(
+    /^https?:\/\/chat\.google\.com\/room\/([^/?#]+)/i
+  );
+  const normalized = roomUrlMatch
+    ? `spaces/${roomUrlMatch[1]}`
+    : configured.startsWith('spaces/')
+      ? configured
+      : configured.includes('/')
+        ? configured
+        : `spaces/${configured}`;
+
+  if (!/^spaces\/[A-Za-z0-9_-]+$/.test(normalized)) {
+    throw new Error(
+      'Config.gs の SPACE_NAME の形式が正しくありません。' +
+      '「spaces/スペースID」、スペースID単体、またはChatの /room/ URLを設定してください。'
+    );
+  }
+
+  return normalized;
 }
 
 function convertMessageToRow_(message, fetchedAt) {
