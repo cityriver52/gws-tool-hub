@@ -52,3 +52,7 @@ function getRequiredEffectiveUserEmail_() {
   }
   return email;
 }
+
+function getSubscriptionSettingsUrl_() {
+  return String(ScriptApp.getService().getUrl() || '').trim();
+}
