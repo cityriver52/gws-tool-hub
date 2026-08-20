@@ -49,6 +49,12 @@
     .primary { background: #2f6fed; color: #fff; }
     .secondary { background: #eef2f7; color: #45536b; }
     button:disabled { opacity: .55; cursor: wait; }
+    .auth-note {
+      margin: 9px 0 0;
+      color: #7a8496;
+      font-size: 12px;
+      line-height: 1.65;
+    }
     .error { margin-top: 16px; color: #b42318; font-size: 13px; white-space: pre-wrap; }
     .hidden { display: none; }
   </style>
@@ -65,6 +71,7 @@
       <button id="subscribeButton" class="primary hidden" type="button">毎日受け取る</button>
       <button id="unsubscribeButton" class="secondary hidden" type="button">配信を停止する</button>
     </div>
+    <p id="authNote" class="auth-note hidden">※ 初回のみ、配信に必要なGoogleの権限を許可する操作が必要です。</p>
 
     <div id="error" class="error hidden"></div>
   </main>
@@ -73,6 +80,7 @@
     const statusEl = document.getElementById('status');
     const subscribeButton = document.getElementById('subscribeButton');
     const unsubscribeButton = document.getElementById('unsubscribeButton');
+    const authNote = document.getElementById('authNote');
     const errorEl = document.getElementById('error');
 
     window.addEventListener('DOMContentLoaded', loadStatus);
@@ -112,11 +120,13 @@
         statusEl.textContent = `✓ 毎日配信中です。${data.email} に、毎日 ${data.hour}時台に届きます。`;
         subscribeButton.classList.add('hidden');
         unsubscribeButton.classList.remove('hidden');
+        authNote.classList.add('hidden');
       } else {
         statusEl.classList.remove('active');
         statusEl.textContent = `${data.email} は現在、毎日配信を受け取っていません。`;
         subscribeButton.classList.remove('hidden');
         unsubscribeButton.classList.add('hidden');
+        authNote.classList.remove('hidden');
       }
     }
 
