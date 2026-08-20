@@ -2,9 +2,9 @@ function buildDailyDiscoveryPlainText_(picks) {
   const hubUrl = getHubWebAppUrl_();
   const settingsUrl = getSubscriptionSettingsUrl_();
   const lines = [
-    '今日のGWS発見 3選',
+    '今日のGWS再発見 3選',
     '',
-    'GWS Tool Hubから、今日の3件をお届けします。',
+    'GWS Tool Hubから、今日の再発見3件をお届けします。',
     ''
   ];
 
@@ -48,9 +48,9 @@ function buildDailyDiscoveryHtml_(picks) {
     <div style="margin:0;padding:24px;background:#f5f7fb;font-family:Arial,'Noto Sans JP',sans-serif;color:#1f2937;">
       <div style="max-width:680px;margin:0 auto;">
         <div style="margin-bottom:20px;">
-          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#718096;">TODAY'S DISCOVERY</div>
-          <h1 style="margin:5px 0 6px;font-size:24px;">今日のGWS発見 3選</h1>
-          <div style="font-size:14px;color:#667085;">GWS Tool Hubから、今日の3件をお届けします。</div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#718096;">TODAY'S REDISCOVERY</div>
+          <h1 style="margin:5px 0 6px;font-size:24px;">今日のGWS再発見 3選</h1>
+          <div style="font-size:14px;color:#667085;">GWS Tool Hubから、今日の再発見3件をお届けします。</div>
         </div>
         ${cards}
         ${hubLink}
