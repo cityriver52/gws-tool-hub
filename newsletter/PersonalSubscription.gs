@@ -39,7 +39,7 @@ function sendMyDailyDiscovery() {
 
   MailApp.sendEmail({
     to: email,
-    subject: `【GWS Tool Hub】${dateLabel}の今日の発見`,
+    subject: `【GWS Tool Hub】${dateLabel}の今日の再発見`,
     body: buildDailyDiscoveryPlainText_(picks),
     htmlBody: buildDailyDiscoveryHtml_(picks),
     name: 'GWS Tool Hub'
