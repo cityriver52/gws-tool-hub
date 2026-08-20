@@ -25,6 +25,14 @@
     .hero-decoration-two { width: 86px; height: 86px; }
     .hero-decoration-three { width: 54px; height: 54px; }
 
+    /* Catalogが2列以上のときは、タグが1行でも2行でもカード高を揃える。 */
+    @media (min-width: 701px) {
+      .catalog-card .card-tags {
+        min-height: 62px;
+        align-content: flex-start;
+      }
+    }
+
     @media (max-width: 640px) {
       .app-header { padding: 12px 12px 0; }
       .hero-card { padding: 20px 22px 22px; border-radius: 18px; }
